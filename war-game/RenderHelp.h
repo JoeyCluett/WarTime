@@ -2,12 +2,7 @@
 #define __JJC__RENDER__HELP__H__
 
 #include <SDL2/SDL.h>
-
-typedef uint8_t u8;
-
-struct ColorPack {
-    u8 r, g, b;
-};
+#include "ColorPack.h"
 
 namespace Render {
 
@@ -22,6 +17,10 @@ void axisAlignedImage(SDL_Renderer* ren, SDL_Texture* tex, SDL_Rect& r) {
 
 void axisAlignedImageFullscreen(SDL_Renderer* ren, SDL_Texture* tex) {
     SDL_RenderCopy(ren, tex, NULL, NULL);
+}
+
+void imageSubsetFullscreen(SDL_Renderer* ren, SDL_Texture* tex, SDL_Rect& image_chunk) {
+    SDL_RenderCopy(ren, tex, &image_chunk, NULL);
 }
 
 } // end of namespace Render::

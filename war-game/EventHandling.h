@@ -5,10 +5,12 @@
 
 class EventHandlerInterface {
 private:
+    // event handler callbacks
     virtual void KeyboardButtonDown(SDL_Event& sdle) = 0;
     virtual void KeyboardButtonUp(SDL_Event& sdle)   = 0;
     virtual void MouseButtonDown(SDL_Event& sdle)    = 0;
     virtual void MouseButtonUp(SDL_Event& sdle)      = 0;
+    virtual void MouseMovement(SDL_Event& sdle)      = 0;
     virtual void DefaultCallback(SDL_Event& sdle)    = 0; // for everything else not covered above
 
 public:
@@ -27,6 +29,9 @@ public:
                     break;
                 case SDL_MOUSEBUTTONUP:
                     MouseButtonUp(e);
+                    break;
+                case SDL_MOUSEMOTION:
+                    MouseMovement(e);
                     break;
                 default:
                     DefaultCallback(e);

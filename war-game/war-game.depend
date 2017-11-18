@@ -331,3 +331,24 @@
 1510614464 /home/joe/Github_Repos/WarTime/war-game/RenderHelp.h
 	<SDL2/SDL.h>
 
+1510987426 source:/home/joey/github/WarTime/war-game/main.cpp
+	<iostream>
+	<SDL2/SDL.h>
+	<SDL2/SDL_image.h>
+	"TypeRedefines.h"
+	"EventHandling.h"
+	"ColorPack.h"
+	"RenderHelp.h"
+
+1510987197 /home/joey/github/WarTime/war-game/EventHandling.h
+	<SDL2/SDL.h>
+
+1510986923 /home/joey/github/WarTime/war-game/RenderHelp.h
+	<SDL2/SDL.h>
+	"ColorPack.h"
+
+1510986907 /home/joey/github/WarTime/war-game/ColorPack.h
+	"TypeRedefines.h"
+
+1510987023 /home/joey/github/WarTime/war-game/TypeRedefines.h
+
