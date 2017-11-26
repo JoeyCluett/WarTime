@@ -2,35 +2,35 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
+#include <glm/glm.hpp>
+#include <map>
+#include <stdlib.h>
+
+#include <MISC/TimeClass.h>
 
 #include "TypeRedefines.h"
+#include "ConstDefines.h"
 #include "EventHandling.h"
 #include "ColorPack.h"
 #include "RenderHelp.h"
+#include "ButtonHandler.h"
+
+#include "game/Tile.h"
+#include "game/Squad.h"
+#include "game/ProjectileRep.h"
 
 using namespace std;
 
 // simple file loading utility
 SDL_Texture* loadImageFromFile(const string& filename, SDL_Renderer* ren);
-static bool mainLoopQuit = false;
+void renderPointer(SDL_Renderer* ren, ColorPack& cp);
+bool mainLoopQuit = false;
+bool applySquadDamage = false;
 int mouse_x = 0, mouse_y = 0;
 int screen_w, screen_h;
 
-class ButtonHandler : public EventHandlerInterface {
-private:
-    // implemented virtual functions
-    void KeyboardButtonDown(SDL_Event& sdle) { mainLoopQuit = true; }
-    void KeyboardButtonUp(SDL_Event& sdle) { return; }
-    void MouseButtonDown(SDL_Event& sdle) { return; }
-    void MouseButtonUp(SDL_Event& sdle) { return; }
-    void DefaultCallback(SDL_Event& sdle) { return; }
-
-    void MouseMovement(SDL_Event& sdle) {
-        mouse_x = sdle.motion.x;
-        mouse_y = sdle.motion.y;
-    }
-
-};
+glm::vec2 start_animation(10.0f, 10.0f);
+glm::vec2 end_animation(400.0f, 400.0f);
 
 int main(int argc, char* argv[]) {
     // quick error check
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    // JPEG and PNG support, SDL_image supports BMP by default
+    // JPEG and PNG support, SDL2_image supports BMP by default
     IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 
     SDL_Window* win = SDL_CreateWindow("Hello World", 100, 100, 640, 480,
@@ -52,41 +52,97 @@ int main(int argc, char* argv[]) {
     // get the screen size
     SDL_GetWindowSize(win, &screen_w, &screen_h);
 
+    // diable cursor
+    SDL_ShowCursor(SDL_DISABLE);
+
     SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if(ren == 0x00) {
+    if(ren == NULL) {
         cerr << "Error creating SDL renderer\n    " << SDL_GetError() << endl;
         return -1;
     }
 
+    // prep random number generator
+    srand(time(NULL));
+
     SDL_Texture* MAP = loadImageFromFile("skyrim-map.jpg", ren);
+
+    GameDataMap gdm;
+    gdm[TR::ScreenWidth]  = (void*)&screen_w;
+    gdm[TR::ScreenHeight] = (void*)&screen_h;
+    gdm[TR::MouseX]       = (void*)&mouse_x;
+    gdm[TR::MouseY]       = (void*)&mouse_y;
+    gdm[TR::MainLoopQuit] = (void*)&mainLoopQuit;
+    gdm[TR::DamageSquad]  = (void*)&applySquadDamage;
+
     ButtonHandler bh;
+    bh.setDataMap(&gdm); // all global game data goes here
 
     int x_offset = 0, y_offset = 0;
     SDL_Rect img_chunk;
     img_chunk.h = screen_h;
     img_chunk.w = screen_w;
 
+    Tile tile1, tile2;
+    tile1.setPosition(1, 1);
+    tile2.setPosition(1, 2.05);
+
+    Squad squad1(5);
+    Squad squad2(5);
+
+    TimeClass tc;
+    ProjectileRep pr(end_animation, start_animation, 3.0f, CP::white);
+    bool render_projectile = false;
+    bool squads_battling = false;
+    vector<ProjectileRep> yeet;
+
     while(!mainLoopQuit) {
         // keyboard update
         bh.update();
 
+        if(applySquadDamage && squad1.size() && squad2.size()) { // no point in fighting if either party is already dead
+            Squad::PrepSkirmish(squad1, squad2, tile1, tile2, CP::blue, CP::red, yeet); // prep battle animation
+            squads_battling = true;
+        }
+
         // render sequence
         SDL_RenderClear(ren);
+        Render::clearScreen(ren, CP::black);
 
-        // draw images onscreen
-        Render::axisAlignedImageFullscreen(ren, MAP);
-        img_chunk.x = x_offset;
-        img_chunk.y = y_offset;
-        Render::imageSubsetFullscreen(ren, MAP, img_chunk);
+        tile1.render(ren, CP::grey_lite);
+        tile2.render(ren, CP::grey_lite);
 
-        SDL_RenderPresent(ren); // replacement for SLD_Flip()
+        if(squad1.size())
+            squad1.render(ren, &tile1, CP::blue);
 
-        x_offset+=2; y_offset+=1;
+        if(squad2.size())
+            squad2.render(ren, &tile2, CP::red);
 
-        if(x_offset > 2000) {
-            x_offset = 0;
-            y_offset = 0;
+        // render battle sequence
+        if(squads_battling) {
+            double deltaTime = tc.getElapsedSecondsUpdate();
+            for(int i = 0; i < yeet.size(); i++) {
+                if(yeet[i].render(ren, deltaTime))
+                    squads_battling = false;
+                //SDL_RenderPresent(ren);
+            }
+
+            if(!squads_battling) {
+               int s1_size = squad1.size();
+               int s2_size = squad2.size();
+
+               for(int i = 0; i < s1_size; i++)
+                    squad2.applyDamage(squad1.getTargetIndex(i), 1);
+               for(int i = 0; i < s2_size; i++)
+                    squad1.applyDamage(squad2.getTargetIndex(i), 1);
+               squad1.clean();
+               squad2.clean();
+            }
         }
+
+
+        renderPointer(ren, CP::white);
+        SDL_RenderPresent(ren); // replacement for SDL_Flip()
+        applySquadDamage = false; // RESET for next time around
     }
 
     // free system resources associated with SDL_*
@@ -110,7 +166,9 @@ SDL_Texture* loadImageFromFile(const string& filename, SDL_Renderer* ren) {
     return tex;
 }
 
-
+void renderPointer(SDL_Renderer* ren, ColorPack& cp) {
+    Render::cirleHollow(ren, mouse_x, mouse_y, 40, cp);
+}
 
 
 

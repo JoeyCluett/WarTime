@@ -2,9 +2,10 @@
 #define __JJC__EVENT__HANDLING__H__
 
 #include <SDL2/SDL.h>
+#include "TypeRedefines.h"
 
 class EventHandlerInterface {
-private:
+protected:
     // event handler callbacks
     virtual void KeyboardButtonDown(SDL_Event& sdle) = 0;
     virtual void KeyboardButtonUp(SDL_Event& sdle)   = 0;
@@ -13,7 +14,20 @@ private:
     virtual void MouseMovement(SDL_Event& sdle)      = 0;
     virtual void DefaultCallback(SDL_Event& sdle)    = 0; // for everything else not covered above
 
+    GameDataMap* gdm;
+
+    template<typename T = int> // default type is int
+    T* retrieve(int key) {
+        return (T*)gdm->at(key);
+    }
+
 public:
+
+    void setDataMap(GameDataMap* gdm) {
+        this->gdm = gdm;
+    }
+
+    // update loop is the same for every EventHandlerInterface
     void update(void) {
         SDL_Event e;
         while(SDL_PollEvent(&e)) {
