@@ -331,13 +331,14 @@
 1510614464 /home/joe/Github_Repos/WarTime/war-game/RenderHelp.h
 	<SDL2/SDL.h>
 
-1511700746 source:/home/joey/github/WarTime/war-game/main.cpp
+1511854293 source:/home/joey/github/WarTime/war-game/main.cpp
 	<iostream>
 	<SDL2/SDL.h>
 	<SDL2/SDL_image.h>
 	<SDL2/SDL2_gfxPrimitives.h>
 	<glm/glm.hpp>
 	<map>
+	<list>
 	<stdlib.h>
 	<MISC/TimeClass.h>
 	"TypeRedefines.h"
@@ -349,6 +350,7 @@
 	"game/Tile.h"
 	"game/Squad.h"
 	"game/ProjectileRep.h"
+	"game/Animation.h"
 
 1511679668 /home/joey/github/WarTime/war-game/EventHandling.h
 	<SDL2/SDL.h>
@@ -375,12 +377,12 @@
 	"ConstDefines.h"
 	"EventHandling.h"
 
-1511692809 /home/joey/github/WarTime/war-game/game/Tile.h
+1511854682 /home/joey/github/WarTime/war-game/game/Tile.h
 	<SDL2/SDL.h>
 	"../ColorPack.h"
 	"../RenderHelp.h"
 
-1511700784 /home/joey/github/WarTime/war-game/game/Squad.h
+1511906685 /home/joey/github/WarTime/war-game/game/Squad.h
 	<vector>
 	<glm/glm.hpp>
 	<SDL2/SDL.h>
@@ -389,9 +391,13 @@
 	<stdlib.h>
 	"Tile.h"
 
-1511698886 /home/joey/github/WarTime/war-game/game/ProjectileRep.h
+1511906676 /home/joey/github/WarTime/war-game/game/ProjectileRep.h
 	<glm/glm.hpp>
 	"../ColorPack.h"
 	"../RenderHelp.h"
 	"Tile.h"
+	"Animation.h"
+
+1511853673 /home/joey/github/WarTime/war-game/game/Animation.h
+	<SDL2/SDL.h>
 

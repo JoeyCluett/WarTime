@@ -38,10 +38,12 @@
 		<Unit filename="EventHandling.h" />
 		<Unit filename="RenderHelp.h" />
 		<Unit filename="TypeRedefines.h" />
+		<Unit filename="game/Animation.h" />
 		<Unit filename="game/ProjectileRep.h" />
 		<Unit filename="game/Squad.h" />
 		<Unit filename="game/Tile.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="sample-playfield.pf" />
 		<Extensions>
 			<code_completion />
 			<debugger />

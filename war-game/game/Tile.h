@@ -5,13 +5,16 @@
 #include "../ColorPack.h"
 #include "../RenderHelp.h"
 
+enum PlayerColor {
+    PlayerColor_None, PlayerColor_Red, PlayerColor_Blue
+};
+
 class Tile {
 private:
     bool has_combatants = false;
     SDL_Rect r;
     float x = 0.0f, y = 0.0f;
-
-
+    PlayerColor pc = PlayerColor_None;
 public:
     // same for every Tile
     static float tile_size;

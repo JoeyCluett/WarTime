@@ -4,6 +4,7 @@
 #include <SDL2/SDL2_gfxPrimitives.h>
 #include <glm/glm.hpp>
 #include <map>
+#include <list>
 #include <stdlib.h>
 
 #include <MISC/TimeClass.h>
@@ -18,12 +19,14 @@
 #include "game/Tile.h"
 #include "game/Squad.h"
 #include "game/ProjectileRep.h"
+#include "game/Animation.h"
 
 using namespace std;
 
 // simple file loading utility
 SDL_Texture* loadImageFromFile(const string& filename, SDL_Renderer* ren);
 void renderPointer(SDL_Renderer* ren, ColorPack& cp);
+void applyAnimations(SDL_Renderer* ren, float deltaT);
 bool mainLoopQuit = false;
 bool applySquadDamage = false;
 int mouse_x = 0, mouse_y = 0;
@@ -31,6 +34,11 @@ int screen_w, screen_h;
 
 glm::vec2 start_animation(10.0f, 10.0f);
 glm::vec2 end_animation(400.0f, 400.0f);
+
+list<Animation*> animation_list;
+
+// playfield:
+vector<vector<Tile>> play_field;
 
 int main(int argc, char* argv[]) {
     // quick error check
@@ -85,6 +93,7 @@ int main(int argc, char* argv[]) {
     Tile tile1, tile2;
     tile1.setPosition(1, 1);
     tile2.setPosition(1, 2.05);
+    Tile::tile_size = 80.0f;
 
     Squad squad1(5);
     Squad squad2(5);
@@ -99,7 +108,7 @@ int main(int argc, char* argv[]) {
         // keyboard update
         bh.update();
 
-        if(applySquadDamage && squad1.size() && squad2.size()) { // no point in fighting if either party is already dead
+        if(applySquadDamage && squad1.size() && squad2.size() && !squads_battling) { // no point in fighting if either party is already dead
             Squad::PrepSkirmish(squad1, squad2, tile1, tile2, CP::blue, CP::red, yeet); // prep battle animation
             squads_battling = true;
         }
@@ -151,6 +160,15 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+void applyAnimations(SDL_Renderer* ren, float deltaT) {
+    list<Animation*>::iterator iter = animation_list.begin();
+    for(; iter != animation_list.end(); iter++) {
+        if((*iter)->render(ren, deltaT))
+            iter = animation_list.erase(iter);
+    }
+}
+
 
 SDL_Texture* loadImageFromFile(const string& filename, SDL_Renderer* ren) {
     SDL_Surface* sur = IMG_Load(filename.c_str());

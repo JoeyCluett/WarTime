@@ -107,7 +107,7 @@ public:
             prv.push_back(ProjectileRep(
                     getTargetLocation(&my_tile, rand()%size()),
                     enemy_squad.getTargetLocation(&enemy_tile, enemy_target_index),
-                    3.0f,
+                    2.00f,
                     cp
             ));
             target_indices[i] = enemy_target_index;
