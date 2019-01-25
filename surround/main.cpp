@@ -13,8 +13,7 @@ int main(int argc, char* argv[]) {
     initialize_colors(win);
     initialize_field();
 
-    SDL_FillRect(win, NULL, color::red);
-    SDL_Flip(win);
+    
 
     usleep(1000000);
 

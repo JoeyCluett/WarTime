@@ -5,7 +5,7 @@
 
 struct tile_t {
     // for SDL rendering system
-    u32 color;
+    u32_t color;
 
     // contains information about the entity 
     // on this tile (if there is one)
