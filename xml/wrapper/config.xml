@@ -1,0 +1,22 @@
+<ConfigStart
+    attr1="value1" attr2="value2">
+
+    <Registers type="integer" num="8"> 
+    
+    </Registers>
+
+    <ReservationGroup entries="3">
+        <operation type="add" latency="2"/>
+        <operation type="sub" latency="4"/>
+    </ReservationGroup>
+
+    <Registers type="float" num="8"> 
+           
+    </Registers>
+
+    <ReservationGroup entries="2">
+        <operation type="mul" latency="10"/>
+        <operation type="div" latency="40"/>
+    </ReservationGroup>
+
+</ConfigStart>

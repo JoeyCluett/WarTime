@@ -1,0 +1,29 @@
+<root>
+
+    <!-- 
+        Each map contains various bits of info needed to play the game
+
+        The following types are allowed:
+            - barrier
+                * x, y, h, w (default = rectangular)
+                * x, y, type=circular/circle
+            - field (default for every square)
+            - spawn
+            - water
+
+        The default shape for everything is axis-aligned rectangular
+     -->
+
+    <barrier x="10" y="10" h="30" w="3" type="rectangular"/>
+    <barrier x="50" y="50" r="10" type="circle"/>
+    <water   x="75" y="75" h="3"  w="3"/>
+
+    <!-- pond with water in the middle -->
+    <barrier x="70" y="20" r="15" type="circular"/>
+    <water   x="70" y="20" r="5"  type="circular"/>
+
+    <!-- 'anti fog of war' -->
+    <fieldknown x="30" y="80" h="9" w="25"/>
+    <waterknown x="42" y="84" r="5" type="circle"/>
+
+</root>
