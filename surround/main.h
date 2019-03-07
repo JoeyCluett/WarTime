@@ -3,11 +3,10 @@
 #include <iostream>
 #include <array>
 #include <utility>
-#include <SDL/SDL.h>
+#include <SDL/SDL.h>     // rendering library
+#include <SDL/SDL_ttf.h> // font library (text)
 #include "tile.h"
 
-//#include <xml/rapidxml.hpp>
-//#include <xml/rapidxml_utils.hpp>
 #include <xml/wrapper/XmlDocument.h>
 #include <xml/wrapper/XmlNode.h>
 
@@ -54,6 +53,15 @@ inline float clamp_between(float in, float min, float max) {
     else {
         return in;
     }
+}
+
+void initialize_ttf() {
+    std::cout << "Initializing font library...";
+    if(TTF_Init() < 0) {
+        throw std::runtime_error("Unable to initialize font library");
+    }
+
+    std::cout << "DONE\n";
 }
 
 // fill every map tile with default color
@@ -302,7 +310,7 @@ void initialize_colors(SDL_Surface* win) {
     color::fuschia = SDL_MapRGB(f, 0xFF, 0x00, 0xFF);
     color::purple  = SDL_MapRGB(f, 0x80, 0x00, 0x80);
 
-    color::light_grey = SDL_MapRGB(f, 0xD3, 0xD3, 0xD3);
+    color::light_grey = SDL_MapRGB(f, 120, 120, 120);
     color::dark_grey  = SDL_MapRGB(f, 0x49, 0x49, 0x49);
 
     // specify some special colors here

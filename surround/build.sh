@@ -1,1 +1,1 @@
-g++ -o main main.cpp -std=c++11 -march=native -lSDL -I../
+g++ -o main main.cpp -std=c++11 -march=native -O3 -lSDL -lSDL_ttf -I../
