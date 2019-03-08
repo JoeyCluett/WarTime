@@ -5,43 +5,11 @@
 #include <utility>
 #include <SDL/SDL.h>     // rendering library
 #include <SDL/SDL_ttf.h> // font library (text)
-#include "tile.h"
 
 #include <xml/wrapper/XmlDocument.h>
 #include <xml/wrapper/XmlNode.h>
 
-namespace color { 
-    u32_t red, green, blue, white, black;
-    u32_t dark_red, dark_green, dark_blue; 
-
-    u32_t maroon, yellow, olive, lime;
-    u32_t aqua, teal, navy, fuschia;
-    u32_t purple;
-
-    u32_t light_grey, dark_grey;
-
-    namespace type {
-
-        u32_t barrier_unknown, barrier_known;
-        u32_t field_unknown,   field_known;
-        u32_t water_unknown,   water_known;
-    
-    } // end of namespace type
-
-} // end of namespace color
-
-std::array<std::array<tile_t, 100>, 100> g_field; // g_field[y][x]
-
-float map_float(float input, float input_start,  
-        float input_end, float output_start, float output_end) {
-    return output_start 
-            + ((output_end - output_start) 
-            / (input_end - input_start)) 
-            * (input - input_start);}
-
-// returns pair<x, y>
-//auto find_global_x_y(float local_x, float local_y, float screen_x, float screen_y, float screen_scale) -> std::pair<float, float> {
-//}
+#include "util.h"
 
 inline float clamp_between(float in, float min, float max) {
     if(in < min) {
@@ -65,23 +33,25 @@ void initialize_ttf() {
 }
 
 // fill every map tile with default color
-static void fill_field_default(u32_t c) {
+static void fill_field_default(u32_t unknown_color, u32_t known_color) {
     for(int y = 0; y < 100; y++) {
         for(int x = 0; x < 100; x++) {
-            g_field[y][x].color = c;
+            g_field[y][x].unknown_color = unknown_color;
+            g_field[y][x].known_color = known_color;
         }
     }
 }
 
-static void fill_single_tile(int x, int y, u32_t c) {
-    if(x >= 0 && x < 100 && y >= 0 && y < 100)
-        g_field[y][x].color = c;
+static void fill_single_tile(int x, int y, u32_t unknown_c, u32_t known_c) {
+    if(x >= 0 && x < 100 && y >= 0 && y < 100) {
+        g_field[y][x].unknown_color = unknown_c;
+        g_field[y][x].known_color = known_c;
+    }
 }
 
 // for this function, assume the viewport is 
-// static and the field moves around it. (which it true)
+// static and the field moves around it (which is true)
 static void render_single_tile(SDL_Surface* win, int x, int y, float screenx, float screeny, float screen_scale = 10.0f) {
-    //std::cout << "(" << screenx << ", " << screeny << ")\n";
 
     if(x < 0 || y < 0 || x >= 100 || y >= 100)
         return;
@@ -94,10 +64,62 @@ static void render_single_tile(SDL_Surface* win, int x, int y, float screenx, fl
     r.x = pixels_per_tile * (float(x) - screenx);
     r.y = pixels_per_tile * (float(y) - screeny);
 
-    //std::cout << "x: " << r.x << ", y: " << r.y 
-    //<< ", h: " << r.h << ", w: " << r.w << std::endl;
+    SDL_FillRect(win, &r, g_field[y][x].color());
+}
 
-    SDL_FillRect(win, &r, g_field[y][x].color);
+// debug function. its useful to be able to see what tile exactly is being targeted
+void render_selected_tile(SDL_Surface* win, int x, int y, float screenx, float screeny, float screen_scale) {
+    float pixels_per_tile = win->h / screen_scale;
+
+    SDL_Rect r;
+    r.h = pixels_per_tile * 1.0f;
+    r.w = pixels_per_tile * 0.1f;
+    r.x = pixels_per_tile * (float(x) - screenx);
+    r.y = pixels_per_tile * (float(y) - screeny);
+    SDL_FillRect(win, &r, color::red);
+
+    r.x = pixels_per_tile * (float(x) - screenx + 0.9f);
+    SDL_FillRect(win, &r, color::red);
+
+    r.h = pixels_per_tile * 0.1f;
+    r.w = pixels_per_tile * 1.0f;
+    r.x = pixels_per_tile * (float(x) - screenx);
+    r.y = pixels_per_tile * (float(y) - screeny);
+    SDL_FillRect(win, &r, color::red);
+
+    r.y = pixels_per_tile * (float(y) - screeny + 0.9f);
+    SDL_FillRect(win, &r, color::red);
+}
+
+void render_selected_area(SDL_Surface* win, float screen_x, float screen_y, float screen_scale, 
+        int start_x, int start_y, int end_x, int end_y) {
+    float pixels_per_tile = win->h / screen_scale;
+
+    int real_start_x = (start_x < end_x) ? start_x : end_x;
+    int real_start_y = (start_y < end_y) ? start_y : end_y;
+    float height = std::abs(start_y - end_y);
+    float width  = std::abs(start_x - end_x);
+
+    SDL_Rect r;
+
+    // render the two horizontal lines
+    r.x = pixels_per_tile * (real_start_x - screen_x);
+    r.y = pixels_per_tile * (real_start_y - screen_y);
+    r.h = pixels_per_tile * 0.2f;
+    r.w = pixels_per_tile * width;
+    SDL_FillRect(win, &r, color::red);
+
+    r.y = pixels_per_tile * (real_start_y - screen_y + height - 0.2f);
+    SDL_FillRect(win, &r, color::red);
+
+    // render the two vertical lines
+    r.y = pixels_per_tile * (real_start_y - screen_y);
+    r.h = pixels_per_tile * height;
+    r.w = pixels_per_tile * 0.2f;
+    SDL_FillRect(win, &r, color::red);
+
+    r.x = pixels_per_tile * (real_start_x - screen_x + width - 0.2f);
+    SDL_FillRect(win, &r, color::red);
 }
 
 // this is the meat of the rendering loop
@@ -112,7 +134,7 @@ void render_field(SDL_Surface* win, float screenx, float screeny, float screen_s
     int end_x = start_x + (screen_scale + 3); // ...
     int end_y = start_y + (screen_scale + 3); // ...
 
-    SDL_FillRect(win, NULL, NULL);
+    SDL_FillRect(win, NULL, 0);
 
     // if screen_scale == 10, this method culls approx. 98% of the tiles
     for(int y = start_y; y < end_y; y++) {
@@ -151,7 +173,7 @@ void render_field(SDL_Surface* win, float screenx, float screeny, float screen_s
 
 // helper function to place specific colored blocks 
 // on the field from an XML node (map description file)
-static void place_map_from_xml_node(XmlNode& n, u32_t c) {
+static void place_map_from_xml_node(XmlNode& n, u32_t unknown_color, u32_t known_color) {
     int x, y, h, w;
     std::string tp = "default";
     
@@ -170,7 +192,7 @@ static void place_map_from_xml_node(XmlNode& n, u32_t c) {
 
         for(int j = y; j < (y+h); j++) {
             for(int i = x; i < (x+w); i++)
-                ::fill_single_tile(i, j, c);
+                ::fill_single_tile(i, j, unknown_color, known_color);
         }
 
     }
@@ -189,7 +211,7 @@ static void place_map_from_xml_node(XmlNode& n, u32_t c) {
         for(int j = (y-r); j < (y+r); j++) {
             for(int i = (x-r); i < (x+r); i++) {
                 if(dist(x, y, i, j) <= r2)
-                    ::fill_single_tile(i, j, c);
+                    ::fill_single_tile(i, j, unknown_color, known_color);
             }
         }
     }
@@ -206,11 +228,11 @@ void initialize_field(std::string filename = "") {
         for(int y = 0; y < 100; y++) {
             for(int x = 0; x < 100; x++) {
                 tile_t& t = g_field[y][x];
-                t.entity.active = false;
 
                 // different colored tiles (rgb)
                 //t.color = c_Arr[(iter++) % 7];
-                t.color = c_Arr[rand() % 7];
+                t.unknown_color = c_Arr[rand() % 7];
+                t.known = false;
             }
         }
     } else {
@@ -229,7 +251,7 @@ void initialize_field(std::string filename = "") {
                 filename += "xml"; // add the chars back
 
                 std::cout << "Generating map from XML file...";
-                ::fill_field_default(color::dark_green);
+                ::fill_field_default(color::dark_green, color::lime);
 
                 XmlDocument doc(filename);
 
@@ -237,15 +259,11 @@ void initialize_field(std::string filename = "") {
 
                 auto root = doc.root();
 
-                std::map<std::string, u32_t> color_map = {
-                    {"barrier", color::type::barrier_unknown},
-                    {"field",   color::type::field_unknown},
-                    {"spawn",   color::white},
-                    {"water",   color::type::water_unknown},
-                    {"globalknown",  color::type::field_known},
-                    {"fieldknown",   color::type::field_known},
-                    {"barrierknown", color::type::barrier_known},
-                    {"waterknown",   color::type::water_known}
+                std::map<std::string, std::pair<u32_t, u32_t>> color_map = {
+                    {"barrier", {color::type::barrier_unknown, color::type::barrier_known}},
+                    {"field",   {color::type::field_unknown, color::type::field_known}},
+                    {"spawn",   {color::white, color::white}},
+                    {"water",   {color::type::water_unknown, color::type::water_known}},
                 };
 
                 auto n = root.child();
@@ -253,7 +271,7 @@ void initialize_field(std::string filename = "") {
 
                     try {
                         auto c = color_map.at(n.name());
-                        ::place_map_from_xml_node(n, c);
+                        ::place_map_from_xml_node(n, c.first, c.second);
                     } catch(std::exception& err) {
                         throw std::runtime_error("Error when generating map from XML file: " + std::string(err.what()));
                     }

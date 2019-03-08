@@ -22,12 +22,4 @@
     <barrier x="70" y="20" r="15" type="circular"/>
     <water   x="70" y="20" r="5"  type="circular"/>
 
-    <!-- 'anti fog of war' -->
-    <fieldknown x="30" y="80" h="9" w="25"/>
-    <waterknown x="42" y="84" r="5" type="circle"/>
-
-    <!-- split the field into quarters -->
-    <barrierknown x="50" y="0" h="100" w="1"/>
-    <barrierknown x="0" y="50" h="1" w="100"/>
-
 </root>

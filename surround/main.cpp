@@ -2,11 +2,12 @@
 #include <SDL/SDL.h>
 #include <unistd.h>
 #include "main.h"
+#include "entity.h"
 #include "ttf_util.h"
 
 using namespace std;
 
-#define MAX_MS_PER_FRAME 16
+#define MAX_MS_PER_FRAME 16 // ~60 fps
 
 float window_x = 0.0f, window_y = 0.0f;
 float screen_scale = 10.0f;
@@ -20,19 +21,28 @@ namespace inputs {
     bool right_mouse_clicked   = false;
     bool right_mouse_unclicked = false;
 
-    int mouse_x = 0, mouse_y = 0; // fetched once each frame
+    int mouse_x = 0, mouse_y = 0; // screen position of mouse
+    float mouse_field_x = 0.0f, mouse_field_y = 0.0f; // mouse position relative to the field
 
     // used by move state to track differential movement
     int   move_start_mouse_x = 0;
     int   move_start_mouse_y = 0;
     float move_start_window_x = 0.0f;
     float move_start_window_y = 0.0f;
+
+    // used by select state to track which area is selected
+    int select_start_x = 0;
+    int select_start_y = 0;
+    int select_end_x = 0;
+    int select_end_y = 0;
+
 } // end of namespace inputs
 
 namespace state {
     int current_state;
     const int _default = 0;
     const int _move    = 1;
+    const int _select  = 2;
 } // end of namespace state
 
 namespace framerate {
@@ -41,11 +51,17 @@ namespace framerate {
     int delta_time;
     std::string fr_string;
 
-    // regardless of framerate, display ms/frame once every 500ms
+    // regardless of framerate, display ms/frame once every 200ms
     int time_since_last_display = 0;
     int display_delta_time = 0; // updated periodically
 
 } // end of namespace framerate
+
+namespace entities {
+
+    std::map<std::string, entity_t*> e_map;
+
+} // end of namespace entities
 
 int main(int argc, char* argv[]) {
 
@@ -62,7 +78,8 @@ int main(int argc, char* argv[]) {
     }
 
     // load our favorite font file
-    auto* font_file = TTF_OpenFont("BEBAS___.ttf", 36);
+    int font_size = win->h / 25;
+    auto* font_file = ::open_font_file_to_size("BEBAS___.ttf", win->h / 10);
     if(!font_file) {
         TTF_Quit();
         SDL_Quit();
@@ -84,6 +101,8 @@ int main(int argc, char* argv[]) {
 
     // first timestamp
     framerate::start_time = SDL_GetTicks();
+
+    auto regular_game_entity = new regular_squad_entity_t(0, 0);
 
     bool game_running = true;
     while(game_running) {
@@ -123,10 +142,15 @@ int main(int argc, char* argv[]) {
                 case SDL_MOUSEMOTION:
                     inputs::mouse_x = ev.motion.x;
                     inputs::mouse_y = ev.motion.y;
+
                     break;
                 default: break;
             }
         }
+
+        // calculate the position of the mouse relative to the field
+        inputs::mouse_field_x = window_x + map_float(inputs::mouse_x, 0.0f, win->w, 0.0f, screen_scale);
+        inputs::mouse_field_y = window_y + map_float(inputs::mouse_y, 0.0f, win->h, 0.0f, screen_scale);
 
         switch(state::current_state) {
             case state::_default:
@@ -151,14 +175,24 @@ int main(int argc, char* argv[]) {
 
                     inputs::scroll_wheel = false;
                 }
-
+                
                 if(inputs::left_mouse_clicked) {
                     inputs::move_start_mouse_x = inputs::mouse_x;
                     inputs::move_start_mouse_y = inputs::mouse_y;
                     inputs::move_start_window_x = window_x;
                     inputs::move_start_window_y = window_y;
+                    
                     state::current_state = state::_move; // change state for next iteration
                     inputs::left_mouse_clicked = false;
+                }
+                else if(inputs::right_mouse_clicked) {
+                    inputs::select_start_x = int(inputs::mouse_field_x);
+                    inputs::select_start_y = int(inputs::mouse_field_y);
+                    inputs::select_end_x = inputs::select_start_x + 1;
+                    inputs::select_end_y = inputs::select_start_y + 1;
+
+                    state::current_state = state::_select;
+                    inputs::right_mouse_clicked = false;
                 }
                 break;
             case state::_move:
@@ -179,6 +213,21 @@ int main(int argc, char* argv[]) {
                     window_y = inputs::move_start_window_y + delta_mouse_scaled_y;
                 }
                 break;
+            case state::_select:
+                // cant scale while selecting
+                inputs::scroll_wheel = false;
+
+                if(inputs::right_mouse_unclicked) {
+                    state::current_state = state::_default; // change state back to default
+                    inputs::right_mouse_unclicked = false;
+                }
+                else {
+                    // track the area being selected
+                    inputs::select_end_x = inputs::mouse_field_x;
+                    inputs::select_end_y = inputs::mouse_field_y;
+                }
+
+                break;
             default:
                 SDL_Quit();
                 exit(1);
@@ -187,16 +236,32 @@ int main(int argc, char* argv[]) {
 
         // render the field with current settings
         render_field(win, window_x, window_y, screen_scale);
-        render_text(win, font_file, framerate::fr_string, 20, 20, {150, 150, 150});
+
+        if(state::current_state == state::_select) {
+            render_selected_area(win, window_x, window_y, screen_scale, 
+                inputs::select_start_x, inputs::select_start_y, inputs::select_end_x, inputs::select_end_y);
+        }
+        else {
+            render_selected_tile(win, inputs::mouse_field_x, inputs::mouse_field_y, window_x, window_y, screen_scale);
+        }
+
+        regular_game_entity->render(win, window_x, window_y, screen_scale, 0.1f);
+
+        render_text(win, font_file, framerate::fr_string, 20, 0, {150, 150, 150});
         if(framerate::time_since_last_display >= 200) {
             framerate::time_since_last_display -= 200;
             framerate::display_delta_time = framerate::delta_time;
         }
+
+        // show the position of the mouse in world coordinates
+        render_text(win, font_file, "x : " + to_string(inputs::mouse_field_x) + ", y : " 
+            + to_string(inputs::mouse_field_y), 20, 1 * font_size, {150, 150, 150});
+
         SDL_Flip(win);
 
         framerate::end_time = SDL_GetTicks();
         framerate::delta_time = framerate::end_time - framerate::start_time;
-        framerate::time_since_last_display += framerate::delta_time;
+        framerate::time_since_last_display += MAX_MS_PER_FRAME;
         framerate::fr_string = "ms/frame:  " + to_string(framerate::display_delta_time);
 
         if(framerate::delta_time < MAX_MS_PER_FRAME) {
