@@ -78,8 +78,8 @@ int main(int argc, char* argv[]) {
     }
 
     // load our favorite font file
-    int font_size = win->h / 25;
-    auto* font_file = ::open_font_file_to_size("BEBAS___.ttf", win->h / 10);
+    int font_size = win->h / 20;
+    auto* font_file = ::open_font_file_to_size("BEBAS___.ttf", font_size);
     if(!font_file) {
         TTF_Quit();
         SDL_Quit();

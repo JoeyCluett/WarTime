@@ -16,36 +16,28 @@ void render_text(SDL_Surface* win, TTF_Font* f, std::string s, int x, int y, SDL
 
 // opens the file multiple times to find a pt size closest to the given pixel size
 TTF_Font* open_font_file_to_size(std::string filename, int sz_pixels) {
-    int pt_sz = 64;
-    
+    int pt_sz_current = 512;
+    int pt_sz_diff    = 256;
     int last_pixel_size;
 
+    while(pt_sz_diff >= 1) {
 
-    // try at most 100 times. no point in tying 
-    // up system resources forever
-    for(int i = 0; i < 100; i++) {
+        auto* font_file = TTF_OpenFont(filename.c_str(), pt_sz_current);
+        last_pixel_size = TTF_FontHeight(font_file);
 
-        TTF_Font* font_file =  TTF_OpenFont(filename.c_str(), pt_sz);
-        last_pixel_size     = TTF_FontHeight(font_file);
-
-        if(last_pixel_size == sz_pixels) {
+        if(last_pixel_size == sz_pixels)
             return font_file;
-        }
         else {
-
-            if(last_pixel_size > sz_pixels) {
-                // need smaller pt size
-                pt_sz -= 4;
-            }
-            else {
-                // need larger pt size
-                pt_sz += 4;
-            }
+            if(last_pixel_size < sz_pixels)
+                pt_sz_current += pt_sz_diff;
+            else
+                pt_sz_current -= pt_sz_diff;
 
             TTF_CloseFont(font_file);
         }
+
+        pt_sz_diff /= 2;
     }
 
-    return TTF_OpenFont(filename.c_str(), pt_sz);
-
+    return TTF_OpenFont(filename.c_str(), pt_sz_current);
 }
