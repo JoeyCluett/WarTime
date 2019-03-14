@@ -1,9 +1,11 @@
 #include <iostream>
 #include <SDL/SDL.h>
 #include <unistd.h>
+#include <unordered_set>
 #include "main.h"
 #include "entity.h"
 #include "ttf_util.h"
+#include "onscreen-log.h"
 
 using namespace std;
 
@@ -55,11 +57,12 @@ namespace framerate {
     int time_since_last_display = 0;
     int display_delta_time = 0; // updated periodically
 
+    // keep track of the number of frames we have had total
+    long int total_frames = 0L;
 } // end of namespace framerate
 
 namespace entities {
-
-    std::map<std::string, entity_t*> e_map;
+    std::unordered_set<entity_t*> e_map;
 
 } // end of namespace entities
 
@@ -86,6 +89,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    OnScreenLog osl(font_file, 10, font_size*2 + (font_size/2));
+
     if(argc == 2) {
         try {
             initialize_field(argv[1]);
@@ -102,17 +107,29 @@ int main(int argc, char* argv[]) {
     // first timestamp
     framerate::start_time = SDL_GetTicks();
 
-    auto regular_game_entity = new regular_squad_entity_t(0, 0);
+    // track all of our entities
+    auto regular_game_entity = new regular_squad_entity_t(20, 20);
+    entities::e_map.insert(regular_game_entity);
 
     bool game_running = true;
     while(game_running) {
+
+        //osl.add_string(to_string(framerate::start_time));
 
         SDL_Event ev;
         while(SDL_PollEvent(&ev)) {
             switch(ev.type) {
                 // check if we should quit
                 case SDL_KEYDOWN:
-                    game_running = false; break;
+                    switch(ev.key.keysym.sym) {
+                        case SDLK_ESCAPE:
+                            game_running = false;
+                            break;
+                        default:
+                            osl.add_string(to_string((char)ev.key.keysym.sym));
+                            break;
+                    }
+                    break;
                 case SDL_MOUSEBUTTONDOWN:
                     switch(ev.button.button) {
                         case SDL_BUTTON_WHEELUP:
@@ -235,6 +252,7 @@ int main(int argc, char* argv[]) {
         }
 
         // render the field with current settings
+        set_visible_field(entities::e_map);
         render_field(win, window_x, window_y, screen_scale);
 
         if(state::current_state == state::_select) {
@@ -257,6 +275,8 @@ int main(int argc, char* argv[]) {
         render_text(win, font_file, "x : " + to_string(inputs::mouse_field_x) + ", y : " 
             + to_string(inputs::mouse_field_y), 20, 1 * font_size, {150, 150, 150});
 
+        osl.render(win, font_size);
+
         SDL_Flip(win);
 
         framerate::end_time = SDL_GetTicks();
@@ -268,6 +288,7 @@ int main(int argc, char* argv[]) {
             SDL_Delay(MAX_MS_PER_FRAME - framerate::delta_time);
         }
         framerate::start_time = SDL_GetTicks();
+        framerate::total_frames++;
     }
 
     TTF_CloseFont(font_file);
